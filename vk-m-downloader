@@ -1,0 +1,45 @@
+use encoding 'utf-8';
+use VK::App;
+use strict;
+use warnings;
+use LWP::Simple;
+use Data::Dumper;
+my $api_id = 4207515; #don't chande
+my $cookie = "/home/username/.vk.cookie"; #cookie file, this app will auth via cookie in future
+my $email = 'mail@mail.ru';#email vk
+my $pass = 'myrealpassword';#pass vk
+my $count = $ARGV[0]||100;#count of audio wich will be downloaded, 100 by default
+my $folder = "/home/username/music/VK";# folder which will be synced
+my $vk=VK::App->new(
+		login=> $email,
+		password=> $pass,
+		api_id	=> $api_id,
+		cookie_file=> $cookie,
+		);
+my $r = $vk->request('audio.get',{count=>$count});
+my $list = $r->{response};
+my %linksArray={};
+foreach (@$list){
+	my @url = split('\?', $_->{url});
+	my $id = $_->{aid};
+	my $artist= $_->{artist};
+	my $title = $_->{title};
+	$linksArray{$id}={
+		artist	=> $artist,
+		title	=> $title,
+		url	=> $url[0],
+	};
+}
+my @listLocal = glob("$folder/*");
+my $total = 0;
+foreach (values %linksArray){
+	my $new_file = "$folder/".$_->{artist}.'-'.$_->{title}.'.mp3';
+	if ($new_file ~~ @listLocal){
+#		print $new_file." already exists \n";
+	}else{
+		getstore($_->{url},$new_file);
+		print $new_file." downloaded\n";
+		$total = $total+1;
+	}
+}
+print $total." audios were downloaded \n";
